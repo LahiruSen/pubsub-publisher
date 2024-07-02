@@ -1,0 +1,9 @@
+<Appointment>
+    <AppointmentId>12345</AppointmentId>
+    <Sequence_Number>1</Sequence_Number>
+    <PatientName>John Doe</PatientName>
+    <AppointmentDate>2024-07-01</AppointmentDate>
+    <DoctorName>Dr. Jane Smith</DoctorName>
+    <Department>Cardiology</Department>
+    <Status>Confirmed</Status>
+</Appointment>
