@@ -24,20 +24,21 @@ import java.util.regex.Pattern;
 public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final int NO_OF_EVENTS = 5000;
-    public static void main(String[] args) throws IOException, InterruptedException {
-        String xml = readFile("/appointment.xml");
-        long sequenceNumber = Long.parseLong(Objects.requireNonNull(extractTagValue(xml, "Sequence_Number")));
-        long nextSequenceNumber = sequenceNumber + 1;
+    private static final int NUMBER_OF_EVENTS = 5000;
 
-        for (long newSequenceNumber = nextSequenceNumber; newSequenceNumber < nextSequenceNumber + NO_OF_EVENTS; newSequenceNumber++) {
-            xml = xml.replace(Long.toString(newSequenceNumber - 1), Long.toString(newSequenceNumber)).replaceAll("(\\r\\n|\\r)+", "");
-            LOGGER.info("Going to publish, SequenceNumber: {}, AppointmentId: {}", newSequenceNumber);
-            publishWithErrorHandlerExample(xml);
+    public static void main(String[] args) throws IOException, InterruptedException {
+        String xmlContent = readFile("/appointment.xml");
+        long initialSequenceNumber = Long.parseLong(Objects.requireNonNull(extractTagValue(xmlContent, "Sequence_Number")));
+        long nextSequenceNumber = initialSequenceNumber + 1;
+
+        for (long currentSequenceNumber = nextSequenceNumber; currentSequenceNumber < nextSequenceNumber + NUMBER_OF_EVENTS; currentSequenceNumber++) {
+            xmlContent = xmlContent.replace(Long.toString(currentSequenceNumber - 1), Long.toString(currentSequenceNumber)).replaceAll("(\\r\\n|\\r)+", "");
+            LOGGER.info("Going to publish, SequenceNumber: {}, AppointmentId: {}", currentSequenceNumber);
+            publishMessageWithRetry(xmlContent);
         }
     }
 
-    public static void publishWithErrorHandlerExample(String message) throws IOException, InterruptedException {
+    public static void publishMessageWithRetry(String message) throws IOException, InterruptedException {
         String projectId = "your-gcp-project-id";
         String topicId = "your-pubsub-topic";
         TopicName topicName = TopicName.of(projectId, topicId);
@@ -60,7 +61,7 @@ public class Main {
                                 LOGGER.info(String.valueOf(apiException.getStatusCode().getCode()));
                                 LOGGER.info(String.valueOf(apiException.isRetryable()));
                             }
-                            LOGGER.info("Error publishing message : {}", message);
+                            LOGGER.info("Error publishing message: {}", message);
                         }
 
                         @Override
@@ -79,20 +80,20 @@ public class Main {
     }
 
     private static String readFile(String filePath) throws IOException {
-        String eventData = "";
+        StringBuilder fileContent = new StringBuilder();
         InputStream inputStream = Main.class.getResourceAsStream(filePath);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                eventData = eventData + line;
+                fileContent.append(line);
             }
         }
-        return eventData;
+        return fileContent.toString();
     }
 
     private static String extractTagValue(String xmlString, String tagName) {
-        String patternString = "<" + tagName + ">(.*?)</" + tagName + ">";
-        Pattern pattern = Pattern.compile(patternString);
+        String tagPattern = "<" + tagName + ">(.*?)</" + tagName + ">";
+        Pattern pattern = Pattern.compile(tagPattern);
         Matcher matcher = pattern.matcher(xmlString);
         if (matcher.find()) {
             return matcher.group(1);
